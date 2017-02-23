@@ -133,7 +133,6 @@ quadTreeNode* findCommonAncesstor(quadTreeNode* root, circle* c1, circle* c2) {
     return node1;
 }
 
-
 static void refineRegion(quadTreeNode* root) {
     // if(!root.isLeaf) return;
     // root.isLeaf = false;
@@ -230,7 +229,54 @@ quadTreeNode* findNeighbor(quadTreeNode* root, quadTreeNode* node, char directio
     }
 }
 
-float neighborValue(quadTreeNode* root, quadTreeNode* node, char direction, int& layer1 = 0) {
+
+void balancedInsert(quadTreeNode* root, quadTreeNode* node) { 
+    queue<quadTreeNode*> q;
+    refineRegion(node);
+    // q.push(node);
+    quadTreeNode* qn = findNeighbor(root, node, 'n');
+    quadTreeNode* qs = findNeighbor(root, node, 's');
+    quadTreeNode* qw = findNeighbor(root, node, 'w');
+    quadTreeNode* qe = findNeighbor(root, node, 'e');
+    
+    if(qn!=NULL) q.push(qn);
+    if(qs!=NULL) q.push(qs);
+    if(qw!=NULL) q.push(qw);
+    if(qe!=NULL) q.push(qe);
+
+    while(!q.empty()) {
+        quadTreeNode* head = q.front();
+        q.pop();
+        if(head->isLeaf) {
+            qn = findNeighbor(root, head, 'n');
+            qs = findNeighbor(root, head, 's');
+            qw = findNeighbor(root, head, 'w');
+            qe = findNeighbor(root, head, 'e');
+            bool state = false;
+            if(qn != NULL && !qn->isLeaf) {
+                if(!qn->sw->isLeaf || !qn->se->isLeaf) state = true;
+            }
+            if(!state && qs != NULL && !qs->isLeaf) {
+                if(!qs->nw->isLeaf || !qs->ne->isLeaf) state = true; 
+            }
+            if(!state && qw != NULL && !qw->isLeaf) {
+                if(!qw->se->isLeaf || !qw->ne->isLeaf) state = true; 
+            }
+            if(!state && qe != NULL && !qe->isLeaf) {
+                if(!qe->sw->isLeaf || !qe->nw->isLeaf) state = true; 
+            }
+            if(state) {
+                refineRegion(head);
+                if(qw!=NULL) q.push(qw);
+                if(qn!=NULL) q.push(qn);
+                if(qe!=NULL) q.push(qe);
+                if(qs!=NULL) q.push(qs);
+            }
+        }
+    }
+}
+
+float neighborValue(quadTreeNode* root, quadTreeNode* node, char direction, int* layer1 = 0) {
     if(node == root) return NULL;
     
     quadTreeNode* node1;
@@ -243,20 +289,20 @@ float neighborValue(quadTreeNode* root, quadTreeNode* node, char direction, int&
         return node1->value;
 
     // node1->depth = node->depth + 1
-    layer1 = node1->layer;
-    int layer2;float a;
+    *layer1 = node1->layer;
+    int *layer2;float a;
     switch(direction) {
         case 'n':
             if(node == node->parent->nw) {
                 a = neighborValue(root, node, 'w', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
             }
             if(node == node->parent->ne) {
                 a = neighborValue(root, node, 'e', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
@@ -264,14 +310,14 @@ float neighborValue(quadTreeNode* root, quadTreeNode* node, char direction, int&
         case 's':
             if(node == node->parent->sw) {
                 a = neighborValue(root, node, 'w', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
             }
             if(node == node->parent->se) {
                 a = neighborValue(root, node, 'e', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
@@ -279,14 +325,14 @@ float neighborValue(quadTreeNode* root, quadTreeNode* node, char direction, int&
         case 'e':
             if(node == node->parent->ne) {
                 a = neighborValue(root, node, 'n', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
             }
             if(node == node->parent->se) {
                 a = neighborValue(root, node, 's', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
@@ -294,14 +340,14 @@ float neighborValue(quadTreeNode* root, quadTreeNode* node, char direction, int&
         case 'w':
             if(node == node->parent->sw) {
                 a = neighborValue(root, node, 's', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
             }
             if(node == node->parent->nw) {
                 a = neighborValue(root, node, 'n', layer2);
-                if(layer1 == layer2)
+                if(*layer1 == *layer2)
                     return a*0.75f + node1->value*0.25f;
                 else 
                     return a*0.6666666f + node1->value*0.3333333f;
@@ -311,7 +357,7 @@ float neighborValue(quadTreeNode* root, quadTreeNode* node, char direction, int&
 
 void insertObstacle(quadTreeNode* root, circle* obstacle) {
     // or we can use cache
-    queue<quadTreeNode*> q; 
+    queue<quadTreeNode*> q;
     q.push(root);
     while(!q.empty()) {
         quadTreeNode* head = q.front();
@@ -325,7 +371,8 @@ void insertObstacle(quadTreeNode* root, circle* obstacle) {
                 if(head->se) q.push(head->se);
             } else {
                 if(head->size > MINSIZE) {
-                    refineRegion(head);
+                    // refineRegion(head);
+                    balancedInsert(root, head);
                     q.push(head->nw);
                     q.push(head->ne);
                     q.push(head->sw);
@@ -337,7 +384,6 @@ void insertObstacle(quadTreeNode* root, circle* obstacle) {
 }
 
 
-
 void deleteBelowNode(quadTreeNode* head) {
     if(head == NULL || head->isLeaf) return;
     
@@ -345,9 +391,9 @@ void deleteBelowNode(quadTreeNode* head) {
         deleteBelowNode(head->nw);
     delete(head->nw);
     head->nw = NULL;
-
+    
     if(!(head->ne)->isLeaf)
-        deleteBelowNode(head->ne);
+    deleteBelowNode(head->ne);
     delete(head->ne);
     head->ne = NULL;
 
@@ -355,7 +401,7 @@ void deleteBelowNode(quadTreeNode* head) {
         deleteBelowNode(head->sw);
     delete(head->sw);
     head->sw = NULL;
-    
+
     if((head->se)->isLeaf) 
         deleteBelowNode(head->se);
     delete(head->se);
@@ -364,10 +410,11 @@ void deleteBelowNode(quadTreeNode* head) {
     head->isLeaf = true;
 }
 
+
+
 void movingObstacle(quadTreeNode* root, circle* cir1, circle* cir2) {    
     queue<quadTreeNode*> q;
     root = findCommonAncesstor(root, cir1, cir2);
-// cout << "hi" << endl;
     q.push(root);
 
     while(!q.empty()) {
@@ -375,15 +422,51 @@ void movingObstacle(quadTreeNode* root, circle* cir1, circle* cir2) {
         q.pop();
 // cout << "(" << head->xc << "," <<head->yc<< ")" << head->size <<  endl;
         if(!head->isLeaf) {
-            // if(cir1->intersect(head) != 0) {  //和circle1不相交，子节点也不相交
-                // if(head->nw) q.push(head->nw); 
-                // if(head->ne) q.push(head->ne);
-                // if(head->sw) q.push(head->sw);
-                // if(head->se) q.push(head->se);
-            // } else if (cir2->intersect(head) != 0) {
-            if(cir1->intersect(head) == 0 && cir2->intersect(head) != 0){
-                deleteBelowNode(head);
-            } else { // 都相交，
+            if(cir2->intersect(head) != 0){
+                // deleteBelowNode(head);
+                cout << "to delete (" << head->xc <<","<<head->yc<<") "<< head->size<<" \n";
+                if(head->nw->isLeaf && head->ne->isLeaf && head->se->isLeaf && head->sw->isLeaf) {
+                    quadTreeNode *qn = findNeighbor(root, head, 'n');
+                    quadTreeNode *qs = findNeighbor(root, head, 's');
+                    quadTreeNode *qw = findNeighbor(root, head, 'w');
+                    quadTreeNode *qe = findNeighbor(root, head, 'e');
+                    
+                    bool state = true;
+                    if(qn!=NULL && !qn->isLeaf && (!qn->sw->isLeaf || !qn->se->isLeaf)) {
+                        state = false;
+                    } else if(state && qs!=NULL && !qs->isLeaf && (!qs->nw->isLeaf || !qs->ne->isLeaf)){
+                        state = false;
+                    } else if(state && qw!=NULL && !qw->isLeaf && (!qw->ne->isLeaf || !qw->se->isLeaf)){
+                        state = false;
+                    } else if(state && qe!=NULL && !qe->isLeaf && (!qe->nw->isLeaf || !qe->sw->isLeaf)){
+                        state = false;
+                    }
+                    if(state) { 
+                        cout << "   delete (" << head->xc <<","<<head->yc<<") "<< head->size<<" \n";
+                        deleteBelowNode(head);
+                        q.push(head->parent);
+
+                        if(head == head->parent->nw) {
+                            if(qn) q.push(qn->parent);
+                            if(qw) q.push(qw->parent);
+                        } else if(head == head->parent->ne) {
+                            if(qn) q.push(qn->parent);
+                            if(qe) q.push(qe->parent);
+                        } else if(head == head->parent->sw) {
+                            if(qs) q.push(qs->parent);
+                            if(qw) q.push(qw->parent);
+                        } else if(head == head->parent->se) {
+                            if(qs) q.push(qs->parent);
+                            if(qe) q.push(qe->parent);
+                        }
+                    }
+                } else {
+                    if(!head->nw->isLeaf) q.push(head->nw); 
+                    if(!head->ne->isLeaf) q.push(head->ne);
+                    if(!head->sw->isLeaf) q.push(head->sw);
+                    if(!head->se->isLeaf) q.push(head->se);
+                }
+            } else { // 
                 if(head->nw) q.push(head->nw);
                 if(head->ne) q.push(head->ne);
                 if(head->sw) q.push(head->sw);
@@ -392,15 +475,15 @@ void movingObstacle(quadTreeNode* root, circle* cir1, circle* cir2) {
         } else { //if(head->isLeaf) 
             if(cir1->intersect(head) != 0 && cir2->intersect(head) == 0) {
                 if(head->size > MINSIZE) {
-                    refineRegion(head);
-                    q.push(head->nw);
-                    q.push(head->ne);
-                    q.push(head->sw);
-                    q.push(head->se);
-                }
-                // } else {
+                    // refineRegion(head);
+                    balancedInsert(root, head);
+                    if(head->nw) q.push(head->nw);
+                    if(head->ne) q.push(head->ne);
+                    if(head->sw) q.push(head->sw);
+                    if(head->se) q.push(head->se);
+                } 
                     // cout << "   size too small to refine\n";
-            // } else if(cir1->intersect(head) == 0 && cir2->intersect(head) != 0){
+
                 // if(cir2->intersect(head->parent) != 0) {
                
    
@@ -460,6 +543,7 @@ void mymouse(int button, int state, int x, int y) {
         circle* cir1 = new circle(cir->xc, cir->yc - 0.1, cir->r);
         movingObstacle(root, cir, cir1);
         cir = cir1;
+        // 
         // click = findEnclosure(root, cir);
                 // glColor3f(1.0, 1.0, 1.0);
         // cout << root->size << endl;
@@ -552,6 +636,9 @@ int main(int argc, char** argv) {
     glutMainLoop();
     return 1;
 }
+
+
+
 
 
 
